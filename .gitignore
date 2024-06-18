@@ -1,0 +1,22 @@
+# Byte-compiles / optimized / DLL files
+__pycache___/
+*.py[cod]
+
+# Virtual environments
+venv/
+env/
+
+# IDE files
+.idea/
+
+# Environment variables
+.env
+
+# Logs
+*.log
+
+# Compiled Python files
+*.pyc
+
+# Mac OS X Finder files
+.DS_Store

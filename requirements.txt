@@ -1,0 +1,3 @@
+Flask
+mcrcon
+Flask-JWT-Extended
