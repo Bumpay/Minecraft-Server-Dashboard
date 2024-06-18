@@ -1,7 +1,17 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import create_access_token, jwt_required
+from dotenv import load_dotenv
+import os
 from .rcon import send_rcon_command
 from .utils import parse_list_response
+
+
+load_dotenv()
+
+# Example user database
+users = {
+    os.getenv('ADMIN_USERNAME'): os.getenv('ADMIN_PASSWORD')
+}
 
 bp = Blueprint('main', __name__)
 
@@ -48,10 +58,12 @@ def fetch_logs():
 
 @bp.route('/auth/login', methods=['POST'])
 def login():
-    data = request.get_json()
-    username = data.get('username')
-    password = data.get('password')
-    if username == 'admin' and password == 'password':  # TODO: Dummy
-        token = create_access_token(identity={'username': username})
-        return jsonify({"token": token})
+    auth = request.authorization
+
+    if not auth or not auth.username or not auth.password:
+        return jsonify({'message': 'Could not verify'}), 401
+
+    if users.get(auth.username) == auth.password:
+        access_token = create_access_token(identity={'username': auth.username})
+        return jsonify({"token": access_token})
     return jsonify({"message": "Invalid credentials"}), 401
