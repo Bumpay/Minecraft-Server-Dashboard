@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, render_template
 from flask_jwt_extended import create_access_token, jwt_required
 from dotenv import load_dotenv
 import os
@@ -14,6 +14,11 @@ users = {
 }
 
 bp = Blueprint('main', __name__)
+
+
+@bp.route('/index')
+def index():
+    return render_template('index.html')
 
 
 @bp.route('/status', methods=['GET'])
