@@ -2,8 +2,11 @@ from flask import Blueprint, request, jsonify, render_template
 from flask_jwt_extended import create_access_token, jwt_required
 from dotenv import load_dotenv
 import os
+import docker
 from .rcon import send_rcon_command
 from .utils import parse_list_response
+from docker.errors import DockerException, NotFound
+import time
 
 
 load_dotenv()
@@ -15,10 +18,45 @@ users = {
 
 bp = Blueprint('main', __name__)
 
+docker_client = docker.DockerClient(base_url=f'tcp://{os.getenv("SERVER_HOST")}:{os.getenv("DOCKER_DAEMON_PORT")}')
+
 
 @bp.route('/index')
 def index():
     return render_template('index.html')
+
+previous_stats = {}
+
+@bp.route('/server/resources', methods=['GET'])
+@jwt_required()
+def server_resources():
+    container_name = os.getenv('CONTAINER_NAME')
+
+    try:
+        container = docker_client.containers.get(container_name)
+        stats = container.stats(stream=False)
+
+        cpu_delta = stats['cpu_stats']['cpu_usage']['total_usage'] - stats['precpu_stats']['cpu_usage']['total_usage']
+        system_cpu_delta = stats['cpu_stats']['system_cpu_usage'] - stats['precpu_stats']['system_cpu_usage']
+        number_cpus = stats['cpu_stats']['online_cpus']
+        cpu_usage_percent = (cpu_delta / system_cpu_delta) * number_cpus * 100.0
+
+        memory_usage = stats['memory_stats']['usage']
+        memory_limit = stats['memory_stats']['limit']
+        memory_percent = (memory_usage / memory_limit) * 100
+
+        return jsonify({
+            "cpu_usage": f"{cpu_usage_percent:.2f} %",
+            "memory_usage": f"{round(memory_usage / (1024 * 1024 * 1024), 2)} GB",
+            "memory_limit": f"{round(memory_limit / (1024 * 1024 * 1024), 2)} GB",
+            "memory_percent": f"{round(memory_percent, 2)} %"
+        })
+
+    except NotFound as e:
+        return jsonify({"message": f"Container '{container_name}' not found: {str(e)}"}), 404
+
+    except DockerException as e:
+        return jsonify({"message": f"Docker error: {str(e)}"}), 500
 
 
 @bp.route('/status', methods=['GET'])

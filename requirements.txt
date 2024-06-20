@@ -2,3 +2,4 @@ Flask
 mcrcon
 Flask-JWT-Extended
 python-dotenv
+docker
