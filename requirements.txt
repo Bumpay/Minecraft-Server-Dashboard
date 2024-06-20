@@ -1,5 +1,7 @@
-Flask
-mcrcon
+Flask~=3.0.3
+mcrcon~=0.7.0
 Flask-JWT-Extended
-python-dotenv
-docker
+python-dotenv~=1.0.1
+docker~=7.1.0
+rcon~=2.4.6
+requests~=2.32.3
