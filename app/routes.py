@@ -41,15 +41,15 @@ def server_resources():
         number_cpus = stats['cpu_stats']['online_cpus']
         cpu_usage_percent = (cpu_delta / system_cpu_delta) * number_cpus * 100.0
 
-        memory_usage = stats['memory_stats']['usage']
-        memory_limit = stats['memory_stats']['limit']
-        memory_percent = (memory_usage / memory_limit) * 100
+        used_memory = stats['memory_stats']['usage'] - stats['memory_stats']['stats']['cache']
+        available_memory = stats['memory_stats']['limit']
+        memory_usage_percent = (used_memory / available_memory) * 100
 
         return jsonify({
             "cpu_usage": f"{cpu_usage_percent:.2f} %",
-            "memory_usage": f"{round(memory_usage / (1024 * 1024 * 1024), 2)} GB",
-            "memory_limit": f"{round(memory_limit / (1024 * 1024 * 1024), 2)} GB",
-            "memory_percent": f"{round(memory_percent, 2)} %"
+            "memory_usage": f"{round(used_memory / (1024 * 1024 * 1024), 2)} GB",
+            "memory_limit": f"{round(available_memory / (1024 * 1024 * 1024), 2)} GB",
+            "memory_percent": f"{round(memory_usage_percent, 2)} %"
         })
 
     except NotFound as e:
