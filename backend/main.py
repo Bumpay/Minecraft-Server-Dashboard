@@ -118,6 +118,27 @@ async def update_config(server_id: str):
     raise NotImplementedError
 
 
+@app.get("/servers/{server_id}/logs")
+async def get_logs(server_id: str):
+    return StreamingResponse(get_server_logs(server_id), media_type="text/event-stream")
+
+
+def get_server_logs(server_id: str):
+    try:
+        container = client.containers.get(server_id)
+
+        for log in container.logs(stream=True, follow=True, tail=10):
+            cleaned_log = log.decode("utf-8").strip()
+            print(cleaned_log)
+            yield f'data: {cleaned_log}\n\n'
+
+    except DockerException as e:
+        yield handle_docker_exception(e)
+
+    except Exception as e:
+        yield f'data: An error occurred: {str(e)}\n\n'
+
+
 @app.post("/servers/{server_id}/command")
 async def send_command(server_id: str):
     raise NotImplementedError
