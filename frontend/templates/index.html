@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Server Dashboard</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Server Dashboard</h1>
+        <div>
+            <button onclick="controlServer('start')">Start Server</button>
+            <button onclick="controlServer('stop')">Stop Server</button>
+            <button onclick="controlServer('restart')">Restart Server</button>
+        </div>
+        <div>
+            <h2>Server Status</h2>
+            <p id="server-status"></p>
+        </div>
+        <div>
+            <h2>Players</h2>
+            <p id="player-count"></p>
+            <ul id="player-list"></ul>
+        </div>
+        <div>
+            <h2>Resource Usage</h2>
+            <div id="resource-usage"></div>
+        </div>
+    </div>
+    <script>
+        $(document).ready(function() {
+            updateStatus();
+            updatePlayers();
+            updateResourceUsage();
+            setInterval(updateStatus, 5000);
+            setInterval(updatePlayers, 5000);
+            setInterval(updateResourceUsage, 5000);
+        });
+
+        function controlServer(action) {
+            $.get(`/server/${action}`, function(data) {
+                alert(data.message);
+            });
+        }
+
+        function updateStatus() {
+            $.get('/status', function(data) {
+                $('#server-status').text(data.status);
+            });
+        }
+
+        function updatePlayers() {
+            $.get('/players', function(data) {
+                $('#player-count').text(`Players: ${data.players.length}/${data.max_players}`);
+                $('#player-list').empty();
+                data.players.forEach(player => {
+                    $('#player-list').append(`<li>${player}</li>`);
+                });
+            });
+        }
+
+        function updateResourceUsage() {
+            $.get('/resource-usage', function(data) {
+                $('#resource-usage').text(`CPU: ${data.cpu}%, Memory: ${data.memory}%`);
+            });
+        }
+    </script>
+</body>
+</html>
