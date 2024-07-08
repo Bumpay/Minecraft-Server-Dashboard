@@ -12,7 +12,8 @@ from fastapi.responses import StreamingResponse
 from sse_starlette.sse import EventSourceResponse
 
 from backend.rcon import send_rcon_command
-from backend.utils import decode_mixed_bytestream, handle_docker_exception, parse_list_response
+from backend.utils import decode_mixed_bytestream, handle_docker_exception, parse_list_response, \
+    run_blocking_logs_in_thread
 
 app = FastAPI()
 
@@ -118,16 +119,21 @@ async def update_config(server_id: str):
     raise NotImplementedError
 
 
+async def async_logs_generator(container, **kwargs):
+    loop = asyncio.get_running_loop()
+    for log in run_blocking_logs_in_thread(container, **kwargs):
+        yield await loop.run_in_executor(None, lambda: log)
+
+
 @app.get("/servers/{server_id}/logs")
 async def get_logs(server_id: str):
     return StreamingResponse(get_server_logs(server_id), media_type="text/event-stream")
 
 
-def get_server_logs(server_id: str):
+async def get_server_logs(server_id: str):
     try:
         container = client.containers.get(server_id)
-
-        for log in container.logs(stream=True, follow=True, tail=10):
+        async for log in async_logs_generator(container, follow=True, tail=10):
             cleaned_log = log.decode("utf-8").strip()
             print(cleaned_log)
             yield f'data: {cleaned_log}\n\n'

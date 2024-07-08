@@ -1,4 +1,7 @@
 import re
+import threading
+from queue import Queue
+from typing import Generator
 
 from docker.errors import DockerException, NotFound, APIError
 from fastapi import HTTPException
@@ -68,3 +71,29 @@ def parse_list_response(response):
         print(f"Error parsing player list: {e}")
         return None
 
+
+# Runs the blocking container.logs() call in a seperate thread
+def run_blocking_logs_in_thread(container, **kwargs):
+    queue = Queue()
+
+    def worker():
+        try:
+            for log in container.logs(stream=True, **kwargs):
+                queue.put(log)
+        except Exception as e:
+            queue.put(e)
+        finally:
+            queue.put(None)  # Signal the end of the logs
+
+    thread = threading.Thread(target=worker)
+    thread.start()
+
+    while True:
+        item = queue.get()
+        if item is None:
+            break
+        if isinstance(item, Exception):
+            raise item
+        yield item
+
+    thread.join()
